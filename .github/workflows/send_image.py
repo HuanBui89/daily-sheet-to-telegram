@@ -1,16 +1,35 @@
-import requests
-from telegram import Bot
-import os
+name: send_image
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("GROUP_CHAT_ID")
+on:
+  schedule:
+    - cron: '0 2 * * *' # 9h sáng giờ VN (UTC+7)
+  workflow_dispatch:
 
-# ✅ Thay bằng link export Google Sheet dạng PNG (lưu ý file công khai!)
-IMAGE_URL = IMAGE_URL = "https://docs.google.com/spreadsheets/d/1G7ql9O5J0nMJ9qkiOsadjPYATo3ZhCgXPTAlx8oUo4U/export?format=png&id=1G7ql9O5J0nMJ9qkiOsadjPYATo3ZhCgXPTAlx8oUo4U&gid=0&range=A2:N26"
+jobs:
+  send_image:
+    runs-on: ubuntu-latest
 
-bot = Bot(token=TELEGRAM_TOKEN)
-print("📤 Đang tải ảnh báo cáo...")
-image_data = requests.get(IMAGE_URL).content
-print("✅ Đang gửi tới Telegram...")
-bot.send_photo(chat_id=CHAT_ID, photo=image_data, caption="📊 Báo cáo số liệu HCM4 sáng nay!")
-print("🎉 Đã gửi thành công.")
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+          if [ ! -f /usr/bin/google-chrome ]; then
+            sudo ln -s /usr/bin/chromium-browser /usr/bin/google-chrome
+          fi
+
+      - name: Run bot
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python send_image.py
