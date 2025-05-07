@@ -2,15 +2,16 @@ name: send_image
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 9h sáng VN (UTC+7)
+    - cron: '0 2 * * *' # 9h sáng giờ VN (UTC+7)
   workflow_dispatch:
 
 jobs:
-  send:
+  send_image:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -22,10 +23,13 @@ jobs:
           pip install -r requirements.txt
           sudo apt-get update
           sudo apt-get install -y chromium-browser
-          sudo ln -s /usr/bin/chromium-browser /usr/bin/google-chrome
+          if [ ! -f /usr/bin/google-chrome ]; then
+            sudo ln -s /usr/bin/chromium-browser /usr/bin/google-chrome
+          fi
 
       - name: Run bot
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          GROUP_CHAT_ID: ${{ secrets.GROUP_CHAT_ID }}
-        run: python send_image.py
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python send_image.py
