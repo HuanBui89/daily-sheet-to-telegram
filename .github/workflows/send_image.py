@@ -2,34 +2,35 @@ name: send_image
 
 on:
   schedule:
-    - cron: '0 2 * * *' # 9h sáng giờ VN (UTC+7)
+    - cron: '0 2 * * *'  # 9h sáng Việt Nam (UTC+7)
   workflow_dispatch:
 
 jobs:
-  send_image:
+  send:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install Chrome & dependencies
         run: |
-          pip install -r requirements.txt
           sudo apt-get update
-          sudo apt-get install -y chromium-browser
-          if [ ! -f /usr/bin/google-chrome ]; then
-            sudo ln -s /usr/bin/chromium-browser /usr/bin/google-chrome
-          fi
+          sudo apt-get install -y wget unzip
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y chromium-driver
+          pip install --upgrade pip
+          pip install selenium openai requests python-telegram-bot==13.15
 
       - name: Run bot
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
+          GROUP_CHAT_ID: ${{ secrets.GROUP_CHAT_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python send_image.py
