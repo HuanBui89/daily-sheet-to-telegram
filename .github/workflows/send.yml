@@ -18,16 +18,12 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Chrome & dependencies (manual method)
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip libnss3 libxss1 libappindicator3-1 libindicator7 fonts-liberation libatk-bridge2.0-0 libgtk-3-0 xvfb
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
-          sudo ln -s /usr/bin/google-chrome /usr/bin/chrome || true
-          sudo apt-get install -y chromium-driver
+          sudo apt-get install -y wget unzip fonts-liberation libatk-bridge2.0-0 libgtk-3-0 libnss3 libxss1 libasound2
           pip install --upgrade pip
-          pip install selenium openai requests python-telegram-bot==13.15
+          pip install undetected-chromedriver openai requests python-telegram-bot==13.15
 
       - name: Run bot
         env:
