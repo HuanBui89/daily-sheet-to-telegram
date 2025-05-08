@@ -7,26 +7,26 @@ from selenium.webdriver.chrome.service import Service
 from telegram import Bot
 from openai import OpenAI
 
-# === ENV variables ===
+# === ENV ===
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("GROUP_CHAT_ID")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# === Config ===
+# === CONFIG ===
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1G7ql9O5J0nMJ9qkiOsadjPYATo3ZhCgXPTAlx8oUo4U/edit#gid=0"
 SCREENSHOT_PATH = "sheet.png"
 
-# === Capture Google Sheet ===
+# === Chụp ảnh Google Sheet ===
 def take_screenshot(url, output_path):
     print("📸 Đang khởi chạy Chrome để chụp ảnh...")
 
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    chrome_path = which("google-chrome") or which("google-chrome-stable")
+    chrome_path = which("google-chrome") or which("chrome")
     driver_path = which("chromedriver")
 
     if not chrome_path or not driver_path:
@@ -37,12 +37,12 @@ def take_screenshot(url, output_path):
 
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(url)
-    time.sleep(10)  # Đợi trang load
+    time.sleep(10)
     driver.save_screenshot(output_path)
     driver.quit()
     print("✅ Đã chụp ảnh Google Sheet.")
 
-# === Generate GPT comment ===
+# === GPT Viết nhận xét ===
 def generate_comment():
     print("🧠 GPT đang viết nhận xét...")
     client = OpenAI(api_key=OPENAI_API_KEY)
@@ -51,7 +51,7 @@ def generate_comment():
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "Bạn là chuyên gia đánh giá hiệu suất bán hàng."},
-            {"role": "user", "content": "Viết một đoạn nhận xét tích cực, ngắn gọn, truyền động lực cho team HCM4 dựa trên báo cáo hôm nay."}
+            {"role": "user", "content": "Viết một đoạn nhận xét tích cực, truyền động lực cho team HCM4 dựa trên báo cáo hôm nay."}
         ],
         temperature=0.8,
         max_tokens=150
@@ -59,7 +59,7 @@ def generate_comment():
 
     return response.choices[0].message.content.strip()
 
-# === Send to Telegram ===
+# === Gửi Telegram ===
 def send_to_telegram():
     print("📤 Đang gửi báo cáo vào Telegram...")
     bot = Bot(token=TELEGRAM_TOKEN)
