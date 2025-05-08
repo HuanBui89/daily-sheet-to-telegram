@@ -6,20 +6,20 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
-# === Cấu hình biến môi trường ===
+# === Biến môi trường ===
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("GROUP_CHAT_ID")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# === Cấu hình file và URL ===
+# === File và URL cần xử lý ===
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1G7ql9O5J0nMJ9qkiOsadjPYATo3ZhCgXPTAlx8oUo4U/preview"
 SCREENSHOT_PATH = "sheet.png"
 CHROME_DRIVER_PATH = "/usr/bin/chromedriver"
 
-# === Cấu hình OpenAI ===
-openai.api_key = OPENAI_API_KEY
+# === Cấu hình OpenAI client mới ===
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
-# === Hàm chụp ảnh Google Sheet ===
+# === Chụp ảnh Google Sheet ===
 def take_screenshot(url, output_path):
     print("📷 Đang chụp ảnh Google Sheet...")
     chrome_options = Options()
@@ -32,26 +32,28 @@ def take_screenshot(url, output_path):
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.get(url)
 
-    time.sleep(10)  # Đợi sheet load hoàn chỉnh
+    time.sleep(10)  # Đợi trang Google Sheet load hoàn chỉnh
     driver.save_screenshot(output_path)
     driver.quit()
 
-# === Hàm tạo nhận xét từ GPT ===
+# === Tạo nhận xét bằng ChatGPT ===
 def generate_comment():
     print("🧠 GPT đang viết nhận xét...")
     prompt = (
-        "Dựa trên báo cáo nhóm HCM4, hãy viết một đoạn nhận xét tích cực, ngắn gọn (khoảng 4-6 câu) "
-        "nhằm truyền động lực cho team. Giọng văn vui vẻ, gần gũi, phong cách Gen Z nếu có thể."
+        "Viết một đoạn nhận xét tích cực, ngắn gọn (4-6 câu) về hiệu suất làm việc nhóm HCM4 hôm nay. "
+        "Giọng văn truyền động lực, phong cách gần gũi, vui vẻ như một team leader Gen Z gửi cho team."
     )
-    response = openai.ChatCompletion.create(
+
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.8,
-        max_tokens=150,
+        max_tokens=150
     )
+
     return response.choices[0].message.content.strip()
 
-# === Hàm gửi ảnh + nhận xét vào Telegram ===
+# === Gửi ảnh + nhận xét lên Telegram ===
 def send_to_telegram():
     print("📤 Đang gửi ảnh và nhận xét vào Telegram...")
     bot = Bot(token=TELEGRAM_TOKEN)
