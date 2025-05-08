@@ -2,7 +2,7 @@ name: send_image
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 9h sáng VN (UTC+7)
+    - cron: '0 2 * * *'  # 9h sáng VN (UTC+7 = UTC+2)
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y chromium-driver
+          sudo apt-get install -y chromium-browser chromium-driver
+          sudo ln -s /usr/bin/chromium-browser /usr/bin/google-chrome || true
           pip install --upgrade pip
           pip install python-telegram-bot==13.15 selenium requests openai
 
@@ -28,6 +29,6 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           GROUP_CHAT_ID: ${{ secrets.GROUP_CHAT_ID }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}   # ✅ THÊM DÒNG NÀY
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python send_image.py
