@@ -2,7 +2,7 @@ name: send_image
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 9h sáng VN (UTC+7 = UTC+2)
+    - cron: '0 2 * * *'  # 9h sáng VN (UTC+7)
   workflow_dispatch:
 
 jobs:
@@ -28,5 +28,6 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           GROUP_CHAT_ID: ${{ secrets.GROUP_CHAT_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}   # ✅ THÊM DÒNG NÀY
         run: |
           python send_image.py
