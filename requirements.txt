@@ -1,4 +1,4 @@
-openai
-requests
-selenium
 python-telegram-bot==13.15
+selenium
+requests
+openai>=1.0.0
