@@ -18,22 +18,14 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Chrome & dependencies
+      - name: Install Chrome & dependencies (manual method)
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip
-          
-          # Cài Google Chrome
+          sudo apt-get install -y wget unzip libnss3 libxss1 libappindicator3-1 libindicator7 fonts-liberation libatk-bridge2.0-0 libgtk-3-0 xvfb
           wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
-          
-          # Tạo symlink để Selenium tìm thấy Chrome
-          sudo ln -s /usr/bin/google-chrome-stable /usr/bin/google-chrome || true
-          
-          # Cài chromedriver
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+          sudo ln -s /usr/bin/google-chrome /usr/bin/chrome || true
           sudo apt-get install -y chromium-driver
-          
-          # Cài thư viện Python
           pip install --upgrade pip
           pip install selenium openai requests python-telegram-bot==13.15
 
