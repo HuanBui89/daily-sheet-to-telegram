@@ -1,23 +1,23 @@
 import os
 import time
-from shutil import which
 import undetected_chromedriver as uc
 from telegram import Bot
 from openai import OpenAI
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # === ENV ===
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("GROUP_CHAT_ID")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# === CONFIG ===
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1G7ql9O5J0nMJ9qkiOsadjPYATo3ZhCgXPTAlx8oUo4U/edit#gid=0"
+SHEET_ID = "1G7ql9O5J0nMJ9qkiOsadjPYATo3ZhCgXPTAlx8oUo4U"
 SCREENSHOT_PATH = "sheet.png"
 
-# === Chụp ảnh Google Sheet ===
+# === Chụp ảnh Sheet ===
 def take_screenshot(url, output_path):
-    print("📸 Đang khởi chạy Chrome để chụp ảnh...")
-
+    print("📸 Đang chụp ảnh Google Sheet...")
     options = uc.ChromeOptions()
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
@@ -29,61 +29,79 @@ def take_screenshot(url, output_path):
     time.sleep(10)
     driver.save_screenshot(output_path)
     driver.quit()
-    print("✅ Đã chụp ảnh Google Sheet.")
+    print("✅ Đã chụp xong.")
 
-# === GPT Viết nhận xét chi tiết ===
+# === Đọc dữ liệu Google Sheet ===
+def get_sales_data():
+    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open_by_key(SHEET_ID)
+    worksheet = sheet.get_worksheet(0)  # sheet đầu tiên
+    data = worksheet.get_all_values()
+    rows = data[1:]  # bỏ header
+
+    # Giả định: [Tên, Doanh thu hôm nay, Bán mới, Hôm qua]
+    result = ""
+    for row in rows:
+        name = row[0]
+        total = row[1]
+        new_sale = row[2]
+        yesterday = row[3] if len(row) > 3 else "0"
+        result += f"{name}: Hôm nay {total} triệu | Bán mới: {new_sale} triệu | Hôm qua: {yesterday} triệu\n"
+
+    return result.strip()
+
+# === GPT phân tích nhận xét ===
 def generate_comment():
-    print("🧠 GPT đang viết nhận xét...")
+    print("🧠 GPT đang phân tích dữ liệu...")
     client = OpenAI(api_key=OPENAI_API_KEY)
+    sales_text = get_sales_data()
 
-    prompt = """
-Bạn là trưởng nhóm sales, đang đánh giá hiệu suất làm việc hàng ngày của nhóm HCM4.
+    prompt = f"""
+Dưới đây là số liệu doanh thu team HCM4 hôm nay:
 
-Dữ liệu hôm nay:
-- Mai Lan Anh dẫn đầu về bán mới, rất mạnh về khai thác KH mới.
-- Tấn Đạt tăng trưởng tổng vượt trội nhưng mất điểm nặng vì bán mới quá thấp.
-- Lục Tiểu Phụng duy trì tốt cả hai mảng.
-- Tâm có tổng ổn nhưng cần duy trì đà tăng của bán mới.
+{sales_text}
 
-Viết nhận xét gồm 2 phần:
-1. Nhận định nhanh theo từng cá nhân (gạch đầu dòng rõ ràng).
-2. Kêu gọi hành động chung cho toàn team với nội dung:
-   - Toàn team chỉ có 1/4 BD đạt nhịp vượt target.
-   - Nếu giữ nguyên tốc độ hiện tại, chỉ có Mai Lan Anh đạt.
-   - Hành động ngay từ hôm nay:
-     + Tăng tiếp cận KH mới ít nhất 2 lần/ngày.
-     + Ưu tiên xử lý KH tiềm năng (đã có quan tâm/gửi báo giá).
-     + Chăm sóc kỹ sau telesales để kéo lại deal.
-     + Gặp khó, chủ động xin tệp hỗ trợ từ team lead.
+Yêu cầu:
+1. Nhận định nhanh từng người (tổng, bán mới, tăng giảm so với hôm qua).
+2. Dự báo doanh thu cuối tháng nếu giữ tốc độ này.
+3. Tính phần còn thiếu để đạt 80 triệu/người.
+4. Hành động toàn team nên làm từ hôm nay.
+5. Kết thúc bằng một câu động viên mạnh mẽ.
 
-Kết thúc bằng một câu động viên ngắn, mạnh mẽ.
+Viết ngắn gọn, rõ ràng, theo phong cách trưởng nhóm sales chuyên nghiệp.
 """
 
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "Bạn là trưởng nhóm sales có tư duy chiến lược và truyền cảm hứng."},
+            {"role": "system", "content": "Bạn là trưởng nhóm sales chuyên nghiệp, có chiến lược và biết truyền cảm hứng."},
             {"role": "user", "content": prompt.strip()}
         ],
         temperature=0.8,
-        max_tokens=350
+        max_tokens=500
     )
 
     return response.choices[0].message.content.strip()
 
-# === Gửi báo cáo Telegram ===
+# === Gửi ảnh + nhận xét vào Telegram ===
 def send_to_telegram():
     print("📤 Đang gửi báo cáo vào Telegram...")
     bot = Bot(token=TELEGRAM_TOKEN)
 
+    # Gửi ảnh trước
     with open(SCREENSHOT_PATH, "rb") as photo:
-        comment = generate_comment()
-        caption = f"📊 Báo cáo số liệu HCM4 sáng nay!\n\n🗣 {comment}"
-        bot.send_photo(chat_id=CHAT_ID, photo=photo, caption=caption)
+        bot.send_photo(chat_id=CHAT_ID, photo=photo, caption="📊 Báo cáo doanh thu hôm nay")
+
+    # Gửi đoạn GPT nhận xét sau ảnh
+    comment = generate_comment()
+    bot.send_message(chat_id=CHAT_ID, text=f"🧠 GPT Nhận xét:\n\n{comment}")
 
 # === MAIN ===
 if __name__ == "__main__":
-    print("🚀 Bắt đầu gửi báo cáo tự động...")
+    print("🚀 Bắt đầu gửi báo cáo...")
     take_screenshot(SHEET_URL, SCREENSHOT_PATH)
     send_to_telegram()
-    print("🎉 Gửi thành công!")
+    print("🎉 Gửi xong!")
