@@ -1,4 +1,6 @@
 undetected-chromedriver
 openai
+gspread
+oauth2client
 requests
 python-telegram-bot==13.15
